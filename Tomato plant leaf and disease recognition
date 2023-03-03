@@ -1,0 +1,210 @@
+import os
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from sklearn.metrics import classification_report, confusion_matrix
+from tensorflow.keras.utils import plot_model
+from tensorflow.keras.models import load_model
+
+
+# Set the path to the dataset
+train_dir = '/content/drive/MyDrive/Colab Notebooks/Tomato Leaf Disease Detection/New Plant Diseases Dataset(Augmented)/train'
+val_dir = '/content/drive/MyDrive/Colab Notebooks/Tomato Leaf Disease Detection/New Plant Diseases Dataset(Augmented)/valid'
+
+# Define the input shape
+input_shape = (256, 256, 3)
+
+# Get the class names
+class_names = os.listdir(train_dir)
+
+# Set the number of images to display for each class
+num_images = 5
+
+# Display the images
+fig, axes = plt.subplots(len(class_names), num_images, figsize=(40, 40))
+
+for i, class_name in enumerate(class_names):
+    class_path = os.path.join(train_dir, class_name)
+    image_names = os.listdir(class_path)
+    random.shuffle(image_names)
+    for j in range(num_images):
+        image_path = os.path.join(class_path, image_names[j])
+        image = load_img(image_path, target_size=(256, 256))
+        axes[i][j].imshow(image)
+        axes[i][j].axis('off')
+        if j == 0:
+            axes[i][j].set_title(class_name)
+        
+plt.show()
+
+
+# Define the model
+model = Sequential()
+model.add(Conv2D(32, (3, 3), activation='relu', input_shape=input_shape))
+model.add(MaxPooling2D((2, 2)))
+model.add(Conv2D(64, (3, 3), activation='relu'))
+model.add(MaxPooling2D((2, 2)))
+model.add(Conv2D(128, (3, 3), activation='relu'))
+model.add(MaxPooling2D((2, 2)))
+model.add(Conv2D(256, (3, 3), activation='relu'))
+model.add(MaxPooling2D((2, 2)))
+model.add(Flatten())
+model.add(Dense(256, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(10, activation='softmax'))
+
+model.summary()
+
+# Compile the model
+model.compile(loss='categorical_crossentropy',optimizer='adam',metrics=['accuracy'])
+
+# Define the image data generator for training data
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True)
+    
+    
+    # Define the image data generator for validation data
+val_datagen = ImageDataGenerator(rescale=1./255)
+
+
+# Set the batch size and number of epochs
+batch_size = 32
+epochs = 10
+
+# Load the training data
+train_generator = train_datagen.flow_from_directory(
+    train_dir,
+    target_size=input_shape[:2],
+    batch_size=batch_size,
+    class_mode='categorical')
+    
+    
+    
+    
+    # Load the validation data
+val_generator = val_datagen.flow_from_directory(
+    val_dir,
+    target_size=(input_shape[:2]),
+    batch_size=batch_size,
+    class_mode='categorical')
+    
+    
+    
+    # Load the validation data
+val_generator = val_datagen.flow_from_directory(
+    val_dir,
+    target_size=(input_shape[:2]),
+    batch_size=batch_size,
+    class_mode='categorical')
+    
+    
+    # Fit the model to the training data
+history = model.fit(
+    train_generator,
+    steps_per_epoch=train_generator.samples // batch_size,
+    epochs=epochs,
+    validation_data=val_generator,
+    validation_steps=val_generator.samples // batch_size)
+    
+    
+    
+    # Evaluate the model on the validation data
+val_loss, val_acc = model.evaluate(val_generator, verbose=0)
+print('Validation loss:', val_loss)
+print('Validation accuracy:', val_acc)
+
+
+# Evaluate the model on the validation data
+val_loss, val_acc = model.evaluate(val_generator, verbose=0)
+print('Validation loss:', val_loss)
+print('Validation accuracy:', val_acc)
+
+
+
+# Make predictions on the validation data
+val_pred = model.predict(val_generator)
+val_pred_classes = np.argmax(val_pred, axis=1)
+val_true_classes = val_generator.classes
+
+
+# Print the classification report and confusion matrix
+print(classification_report(val_true_classes, val_pred_classes))
+print(confusion_matrix(val_true_classes, val_pred_classes))
+
+
+
+# Plot the training and validation accuracy and loss over time
+acc = history.history['accuracy']
+val_acc = history.history['val_accuracy']
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs_range = range(epochs)
+
+plt.figure(figsize=(16, 8))
+plt.subplot(1, 2, 1)
+plt.plot(epochs_range, acc, label='Training Accuracy')
+plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+plt.legend(loc='lower right')
+plt.title('Training and Validation Accuracy')
+
+plt.subplot(1, 2, 2)
+plt.plot(epochs_range, loss, label='Training Loss')
+plt.plot(epochs_range, val_loss, label='Validation Loss')
+plt.legend(loc='upper right')
+plt.title('Training and Validation Loss')
+plt.show()
+
+
+
+# Save the model
+model.save('/content/drive/MyDrive/Colab Notebooks/Tomato Leaf Disease Detection/tomato_disease_detection_model.h5')
+
+
+
+
+# load the model
+
+loaded_model = load_model('/content/drive/MyDrive/Colab Notebooks/Tomato Leaf Disease Detection/tomato_disease_detection_model.h5')
+
+
+
+
+
+# Set the input shape
+input_shape = (256, 256)
+
+# Load the image to be tested
+test_img_path = "/content/drive/MyDrive/Colab Notebooks/Tomato Leaf Disease Detection/New Plant Diseases Dataset(Augmented)/valid/Tomato___Tomato_Yellow_Leaf_Curl_Virus/01933767-8827-4a46-b089-76b1d8397eb6___YLCV_GCREC 2539.JPG"
+test_img = load_img(test_img_path, target_size=input_shape)
+
+# Convert the image to a numpy array and preprocess it
+test_img_array = img_to_array(test_img)
+test_img_array = test_img_array.reshape((1,) + test_img_array.shape)
+test_img_array /= 255.
+
+# Make a prediction on the test image
+pred = model.predict(test_img_array)
+pred_class = np.argmax(pred, axis=1)[0]
+pred_conf = pred[0][pred_class]
+
+# Define the class names
+class_names = ['Bacterial_spot', 'Early_blight', 'Late_blight', 'Leaf_mold',
+               'Septoria_leaf_spot', 'Spider_mites', 'Target_spot',
+               'Tomato_Yellow_Leaf_Curl_Virus', 'Tomato_mosaic_virus', 'healthy']
+
+# Print the predicted class and confidence level
+print('Predicted class:', class_names[pred_class])
+print('Confidence:', pred_conf)
+
+# Visualize the test image and its predicted class
+plt.imshow(test_img)
+plt.title('Predicted class: {} ({:.2%} confidence)'.format(class_names[pred_class], pred_conf))
+plt.axis('off')
+plt.show()
